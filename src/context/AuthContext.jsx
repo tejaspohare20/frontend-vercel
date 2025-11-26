@@ -3,8 +3,12 @@ import axios from 'axios'
 
 const AuthContext = createContext()
 
-// Configure axios base URL
-axios.defaults.baseURL = 'http://localhost:5002'
+// Configure axios base URL - use deployed backend URL
+const API_BASE_URL = 'https://vercel-backend-1-js1a.onrender.com'
+axios.defaults.baseURL = API_BASE_URL
+
+// Add timeout to axios requests for better mobile handling
+axios.defaults.timeout = 15000 // 15 seconds
 
 // Development mode - set to false when backend is ready
 const DEV_MODE = false
@@ -42,11 +46,14 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async () => {
     try {
+      console.log('Fetching user profile...')
       const response = await axios.get('/api/auth/profile')
+      console.log('User profile response:', response.data)
       setUser(response.data.user)
       setLoading(false)
     } catch (error) {
       console.error('Failed to fetch user profile:', error)
+      console.error('Error response:', error.response)
       // Don't logout immediately, just log the error
       setLoading(false)
     }
@@ -74,7 +81,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      console.log('Attempting login with:', email)
+      console.log('Attempting login with:', { email })
       const response = await axios.post('/api/auth/login', { email, password })
       console.log('Login response:', response.data)
       const { token, user } = response.data
@@ -85,9 +92,40 @@ export const AuthProvider = ({ children }) => {
       return { success: true }
     } catch (error) {
       console.error('Login error:', error)
+      console.error('Login error response:', error.response)
+      
+      // More detailed error handling for mobile
+      if (error.code === 'ERR_NETWORK') {
+        return {
+          success: false,
+          error: 'Network error. Please check your connection and try again.'
+        }
+      }
+      
+      // Handle specific HTTP status codes
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            return {
+              success: false,
+              error: 'Invalid credentials. Please check your email and password.'
+            }
+          case 500:
+            return {
+              success: false,
+              error: 'Server error. Please try again in a few moments.'
+            }
+          default:
+            return {
+              success: false,
+              error: error.response.data?.message || `Login failed with status ${error.response.status}`
+            }
+        }
+      }
+      
       return {
         success: false,
-        error: error.response?.data?.message || 'Login failed'
+        error: error.response?.data?.message || 'Login failed. Please try again.'
       }
     }
   }
@@ -129,12 +167,17 @@ export const AuthProvider = ({ children }) => {
 
     try {
       console.log('Attempting signup with:', { name, email })
-      const response = await axios.post('/api/auth/register', {
+      // Add detailed request logging
+      const requestData = {
         username: name,
         email,
         password
-      })
+      }
+      console.log('Signup request data:', requestData)
+      
+      const response = await axios.post('/api/auth/register', requestData)
       console.log('Signup response:', response.data)
+      
       const { token, user } = response.data
       localStorage.setItem('token', token)
       setToken(token)
@@ -143,9 +186,40 @@ export const AuthProvider = ({ children }) => {
       return { success: true }
     } catch (error) {
       console.error('Signup error:', error)
+      console.error('Signup error response:', error.response)
+      
+      // More detailed error handling for mobile
+      if (error.code === 'ERR_NETWORK') {
+        return {
+          success: false,
+          error: 'Network error. Please check your connection and try again.'
+        }
+      }
+      
+      // Handle specific HTTP status codes
+      if (error.response) {
+        switch (error.response.status) {
+          case 400:
+            return {
+              success: false,
+              error: error.response.data?.message || 'Invalid signup data. Please check your inputs.'
+            }
+          case 500:
+            return {
+              success: false,
+              error: 'Server error. Please try again in a few moments.'
+            }
+          default:
+            return {
+              success: false,
+              error: error.response.data?.message || `Signup failed with status ${error.response.status}`
+            }
+        }
+      }
+      
       return {
         success: false,
-        error: error.response?.data?.message || 'Signup failed'
+        error: error.response?.data?.message || 'Signup failed. Please try again.'
       }
     }
   }
@@ -172,3 +246,4 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
+export default AuthContext

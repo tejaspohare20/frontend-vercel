@@ -152,6 +152,7 @@ const AIPractice = () => {
 
     try {
       const token = localStorage.getItem('token')
+      console.log('Sending chat message to backend:', chatInput)
       const response = await axios.post('/api/ai/chat', {
         message: chatInput,
         history: chatMessages.slice(-5) // Send last 5 messages for context
@@ -160,7 +161,8 @@ const AIPractice = () => {
           'Authorization': `Bearer ${token}`
         }
       })
-      
+    
+      console.log('Received response from backend:', response.data)
       const aiMessage = { 
         role: 'assistant', 
         content: response.data.reply || 'I apologize, but I couldn\'t generate a response.',

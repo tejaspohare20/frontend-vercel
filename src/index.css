@@ -52,6 +52,34 @@
   .text-glow {
     text-shadow: 0 10px 40px rgba(99, 102, 241, 0.35);
   }
+  
+  /* Mobile touch enhancements */
+  .touch-active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* Mobile-specific fixes */
+@media (max-width: 768px) {
+  /* Ensure form inputs are properly sized on mobile */
+  input, button, select, textarea {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    font-size: 16px; /* Prevents zoom on iOS Safari */
+  }
+  
+  /* Fix for mobile button taps */
+  button, a, .clickable {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
 }
 
 ::-webkit-scrollbar {
@@ -71,4 +99,3 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
-

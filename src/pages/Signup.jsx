@@ -12,9 +12,37 @@ const Signup = () => {
   const { signup } = useAuth()
   const navigate = useNavigate()
 
+  // Prevent form submission on Enter key in mobile to avoid accidental submissions
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // Don't submit on Enter in mobile to prevent accidental submissions
+      if (window.innerWidth <= 768) {
+        return;
+      }
+      handleSubmit(e);
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+
+    // Validation
+    if (!name.trim()) {
+      setError('Name is required')
+      return
+    }
+
+    if (!email.trim()) {
+      setError('Email is required')
+      return
+    }
+
+    if (!password) {
+      setError('Password is required')
+      return
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
@@ -27,7 +55,7 @@ const Signup = () => {
     }
 
     setLoading(true)
-    const result = await signup(name, email, password)
+    const result = await signup(name.trim(), email.trim(), password)
     if (result.success) {
       navigate('/dashboard')
     } else {
@@ -36,25 +64,40 @@ const Signup = () => {
     setLoading(false)
   }
 
+  // Add onTouchStart to buttons to fix mobile click issues
+  const handleTouchStart = (e) => {
+    e.currentTarget.classList.add('touch-active')
+  }
+
+  const handleTouchEnd = (e) => {
+    e.currentTarget.classList.remove('touch-active')
+  }
+
+  // Handle form submission with explicit button click only
+  const handleSignupClick = (e) => {
+    e.preventDefault()
+    handleSubmit(e)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-success-50 via-white to-success-50 relative overflow-hidden">
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-20 left-10 w-72 h-72 bg-success-300 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" />
         <div className="absolute bottom-20 right-10 w-72 h-72 bg-primary-300 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
-      <div className="relative max-w-6xl mx-auto px-6 py-12 flex flex-col-reverse lg:flex-row items-center gap-12">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col-reverse lg:flex-row items-center gap-8 sm:gap-12">
         <div className="flex-1 w-full">
-          <div className="bg-white rounded-3xl p-8 shadow-hover border border-neutral-200">
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-hover border border-neutral-200">
             <div className="text-center">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-success-100 border border-success-300">
                 <span className="text-2xl">🎯</span>
                 <span className="text-sm font-semibold text-success-700 uppercase tracking-wide">Start Today</span>
               </div>
-              <h2 className="mt-4 text-3xl font-display font-semibold text-neutral-800">Create your account</h2>
+              <h2 className="mt-4 text-2xl sm:text-3xl font-display font-semibold text-neutral-800">Create your account</h2>
               <p className="text-neutral-600 mt-2 text-sm">Join thousands learning English confidently</p>
             </div>
 
-            <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+            <form className="mt-6 sm:mt-8 space-y-4 sm:space-y-5" onSubmit={handleSubmit}>
               {error && (
                 <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm font-medium">
                   {error}
@@ -72,6 +115,8 @@ const Signup = () => {
                     placeholder="Alex Johnson"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    autoComplete="name"
                   />
                 </div>
                 <div>
@@ -86,6 +131,7 @@ const Signup = () => {
                     placeholder="you@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={handleKeyDown}
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -101,6 +147,7 @@ const Signup = () => {
                       placeholder="Min 6 characters"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      onKeyDown={handleKeyDown}
                     />
                   </div>
                   <div>
@@ -115,22 +162,31 @@ const Signup = () => {
                       placeholder="Re-type password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
+                      onKeyDown={handleKeyDown}
                     />
                   </div>
                 </div>
               </div>
 
               <button
-                type="submit"
+                type="button" // Changed to button type to prevent form auto-submit
+                onClick={handleSignupClick}
                 disabled={loading}
-                className="w-full py-3.5 rounded-xl font-bold text-white bg-success-500 hover:bg-success-600 hover:shadow-lg hover:shadow-success-500/30 transition-all disabled:opacity-60 text-base"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                className="w-full py-3.5 rounded-xl font-bold text-white bg-success-500 hover:bg-success-600 hover:shadow-lg hover:shadow-success-500/30 transition-all disabled:opacity-60 text-base touch-active:bg-success-600"
               >
                 {loading ? 'Creating account...' : 'GET STARTED'}
               </button>
 
               <p className="text-center text-sm text-neutral-600">
                 Already practicing?{' '}
-                <Link to="/login" className="text-success-600 font-semibold hover:text-success-700">
+                <Link 
+                  to="/login" 
+                  className="text-success-600 font-semibold hover:text-success-700"
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
+                >
                   Sign in instead
                 </Link>
               </p>
@@ -143,7 +199,7 @@ const Signup = () => {
             <span className="text-xl">🚀</span>
             <span className="text-xs font-semibold text-success-700 uppercase tracking-wide">Micro Learning</span>
           </div>
-          <h1 className="mt-6 text-4xl md:text-5xl font-display font-bold leading-tight text-neutral-800">
+          <h1 className="mt-6 text-3xl sm:text-4xl md:text-5xl font-display font-bold leading-tight text-neutral-800">
             Build unstoppable <span className="text-success-600">speaking momentum.</span>
           </h1>
           <p className="mt-4 text-lg text-neutral-600 max-w-xl">
@@ -151,7 +207,7 @@ const Signup = () => {
             glowing and your confidence compounding.
           </p>
 
-          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="mt-8 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               { title: 'AI Practice', desc: 'Voice + text feedback with instant scoring', emoji: '🎤' },
               { title: 'Peer Arena', desc: 'Anonymous real-time conversation rooms', emoji: '👥' },
@@ -171,7 +227,7 @@ const Signup = () => {
       </div>
       
       {/* Footer Trust Badge */}
-      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
         <p className="text-sm text-neutral-500 text-center">
           ✨ Join 50,000+ learners • Free to start • No credit card required
         </p>

@@ -34,7 +34,10 @@ const PeerChat = () => {
   const ringtoneRef = useRef(null)
 
   useEffect(() => {
-    socketRef.current = io('http://localhost:5002', {
+    // Use deployed backend URL for WebSocket connection
+    const SOCKET_URL = 'https://vercel-backend-1-js1a.onrender.com'
+    
+    socketRef.current = io(SOCKET_URL, {
       transports: ['websocket'],
     })
 
@@ -42,16 +45,18 @@ const PeerChat = () => {
       setConnected(true)
       setStatus('Finding a peer...')
       const displayName = user?.username || user?.name || user?.email?.split('@')[0] || 'Anonymous'
-      console.log('Joining chat with name:', displayName, 'User object:', user)
+      console.log('🔌 Socket connected, joining chat with name:', displayName, 'User object:', user)
       socketRef.current.emit('join-chat', { userName: displayName })
     })
 
     socketRef.current.on('waiting-for-peer', () => {
+      console.log('⏳ Waiting for peer to connect...')
       setStatus('Waiting for someone to connect...')
       setMatched(false)
     })
 
     socketRef.current.on('peer-matched', (data) => {
+      console.log('🤝 Peer matched:', data)
       setPeerName(data.peerName || 'Anonymous')
       setMatched(true)
       setStatus('Connected')
@@ -89,6 +94,7 @@ const PeerChat = () => {
     })
 
     socketRef.current.on('voice-call-rejected', () => {
+      console.log('❌ Voice call rejected')
       setOutgoingCall(false)
       setMessages((prev) => [
         ...prev,
@@ -97,24 +103,29 @@ const PeerChat = () => {
     })
 
     socketRef.current.on('voice-call-accepted', async () => {
+      console.log('✅ Voice call accepted')
       await initiateCall()
     })
 
     socketRef.current.on('voice-call-offer', async (data) => {
+      console.log('📡 Received voice-call-offer:', data)
       await handleReceiveOffer(data)
     })
 
     socketRef.current.on('voice-call-answer', async (data) => {
+      console.log('📡 Received voice-call-answer:', data)
       await handleReceiveAnswer(data)
     })
 
     socketRef.current.on('ice-candidate', async (data) => {
+      console.log('🧊 Received ICE candidate:', data)
       if (peerConnectionRef.current && data.candidate) {
         await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate))
       }
     })
 
     socketRef.current.on('voice-call-ended', () => {
+      console.log('☎️ Voice call ended')
       endVoiceCall()
       setMessages((prev) => [
         ...prev,
@@ -123,6 +134,7 @@ const PeerChat = () => {
     })
 
     socketRef.current.on('message', (data) => {
+      console.log('💬 Received message:', data)
       setMessages((prev) => [
         ...prev,
         { type: 'peer', text: data.message, sender: data.sender, timestamp: data.timestamp }
@@ -130,14 +142,17 @@ const PeerChat = () => {
     })
 
     socketRef.current.on('peer-typing', (data) => {
+      console.log('⌨️ Peer is typing')
       setIsTyping(true)
     })
 
     socketRef.current.on('peer-stop-typing', () => {
+      console.log('⏹️ Peer stopped typing')
       setIsTyping(false)
     })
 
     socketRef.current.on('peer-disconnected', (data) => {
+      console.log('💔 Peer disconnected:', data)
       endVoiceCall()
       setMatched(false)
       setStatus('Peer disconnected')
@@ -154,6 +169,7 @@ const PeerChat = () => {
     })
 
     socketRef.current.on('disconnect', () => {
+      console.log('🔌 Socket disconnected')
       setConnected(false)
       setMatched(false)
       setStatus('Disconnected')
@@ -161,6 +177,7 @@ const PeerChat = () => {
 
     // Online stats
     socketRef.current.on('online-stats', (stats) => {
+      console.log('📊 Online stats updated:', stats)
       setOnlineStats(stats)
     })
 
@@ -190,7 +207,8 @@ const PeerChat = () => {
       }
       
       console.log('Loading contacts...')
-      const response = await axios.get('http://localhost:5002/api/contacts', {
+      // Use axios which already has the base URL configured
+      const response = await axios.get('/api/contacts', {
         headers: { Authorization: `Bearer ${token}` }
       })
       console.log('Contacts loaded:', response.data)
@@ -211,7 +229,8 @@ const PeerChat = () => {
       }
       
       console.log('Sending contact request to:', username)
-      const response = await axios.post('http://localhost:5002/api/contacts/request', 
+      // Use axios which already has the base URL configured
+      const response = await axios.post('/api/contacts/request', 
         { username },
         { headers: { Authorization: `Bearer ${token}` }
       })
@@ -230,8 +249,9 @@ const PeerChat = () => {
     try {
       const token = localStorage.getItem('token')
       if (!token) return
-      
-      const response = await axios.post(`http://localhost:5002/api/contacts/accept/${requestId}`, {},
+    
+      // Use axios which already has the base URL configured
+      const response = await axios.post(`/api/contacts/accept/${requestId}`, {},
         { headers: { Authorization: `Bearer ${token}` }
       })
       
@@ -248,8 +268,9 @@ const PeerChat = () => {
     try {
       const token = localStorage.getItem('token')
       if (!token) return
-      
-      const response = await axios.post(`http://localhost:5002/api/contacts/reject/${requestId}`, {},
+    
+      // Use axios which already has the base URL configured
+      const response = await axios.post(`/api/contacts/reject/${requestId}`, {},
         { headers: { Authorization: `Bearer ${token}` }
       })
       
@@ -868,7 +889,7 @@ const PeerChat = () => {
       {/* Hidden audio elements */}
       <audio ref={remoteAudioRef} autoPlay />
       <audio ref={ringtoneRef} loop>
-        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZ" type="audio/wav" />
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZPQ0VZbXq7KdaGgxBnN/yuXEdBzWM1PLTejAGHW/A7+OZ" type="audio/wav" />
       </audio>
     </div>
   )

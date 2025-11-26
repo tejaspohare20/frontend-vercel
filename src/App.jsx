@@ -13,6 +13,27 @@ import Achievements from './pages/Achievements'
 import Leaderboard from './pages/Leaderboard'
 import Admin from './pages/Admin'
 
+// 404 Page Component
+const NotFound = () => {
+  return (
+    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <div className="text-center max-w-md px-4">
+        <div className="text-6xl font-bold text-neutral-300 mb-4">404</div>
+        <h1 className="text-2xl font-display font-bold text-neutral-800 mb-2">Page not found</h1>
+        <p className="text-neutral-600 mb-6">
+          Sorry, we couldn't find the page you're looking for.
+        </p>
+        <a 
+          href="/" 
+          className="inline-block bg-primary-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-600 transition-colors"
+        >
+          Go back home
+        </a>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -85,7 +106,8 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* 404 route - should be the last route */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </AuthProvider>
@@ -93,4 +115,3 @@ function App() {
 }
 
 export default App
-
