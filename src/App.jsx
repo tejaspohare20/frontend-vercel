@@ -12,6 +12,7 @@ import Progress from './pages/Progress'
 import Achievements from './pages/Achievements'
 import Leaderboard from './pages/Leaderboard'
 import Admin from './pages/Admin'
+import TestEnv from './pages/TestEnv'
 
 // 404 Page Component
 const NotFound = () => {
@@ -42,6 +43,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/test-env" element={<TestEnv />} />
           <Route
             path="/dashboard"
             element={
