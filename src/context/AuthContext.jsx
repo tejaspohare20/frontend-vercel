@@ -3,8 +3,8 @@ import axios from 'axios'
 
 const AuthContext = createContext()
 
-// Configure axios base URL - use local backend URL
-const API_BASE_URL = 'http://localhost:5002'
+// Configure axios base URL - use environment variable or fallback to local backend URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002'
 axios.defaults.baseURL = API_BASE_URL
 
 // Add timeout to axios requests for better mobile handling
