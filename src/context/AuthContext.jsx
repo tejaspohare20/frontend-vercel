@@ -82,6 +82,9 @@ export const AuthProvider = ({ children }) => {
 
     try {
       console.log('Attempting login with:', { email })
+      // Log the API base URL to verify it's correct
+      console.log('API Base URL:', axios.defaults.baseURL)
+      
       const response = await axios.post('/api/auth/login', { email, password })
       console.log('Login response:', response.data)
       const { token, user } = response.data
@@ -96,6 +99,19 @@ export const AuthProvider = ({ children }) => {
       
       // More detailed error handling for mobile
       if (error.code === 'ERR_NETWORK') {
+        return {
+          success: false,
+          error: 'Network error. Please check your connection and try again.'
+        }
+      }
+      
+      // Handle network errors specifically
+      if (!error.response) {
+        console.error('Network error details:', {
+          baseURL: axios.defaults.baseURL,
+          requestURL: '/api/auth/login',
+          fullURL: `${axios.defaults.baseURL}/api/auth/login`
+        });
         return {
           success: false,
           error: 'Network error. Please check your connection and try again.'
@@ -175,6 +191,9 @@ export const AuthProvider = ({ children }) => {
       }
       console.log('Signup request data:', requestData)
       
+      // Log the API base URL to verify it's correct
+      console.log('API Base URL:', axios.defaults.baseURL)
+      
       const response = await axios.post('/api/auth/register', requestData)
       console.log('Signup response:', response.data)
       
@@ -196,13 +215,31 @@ export const AuthProvider = ({ children }) => {
         }
       }
       
+      // Handle network errors specifically
+      if (!error.response) {
+        console.error('Network error details:', {
+          baseURL: axios.defaults.baseURL,
+          requestURL: '/api/auth/register',
+          fullURL: `${axios.defaults.baseURL}/api/auth/register`
+        });
+        return {
+          success: false,
+          error: 'Network error. Please check your connection and try again.'
+        }
+      }
+      
       // Handle specific HTTP status codes
       if (error.response) {
         switch (error.response.status) {
           case 400:
             return {
               success: false,
-              error: error.response.data?.message || 'Invalid signup data. Please check your inputs.'
+              error: 'Invalid input. Please check your details.'
+            }
+          case 401:
+            return {
+              success: false,
+              error: 'Unauthorized. Please try again.'
             }
           case 500:
             return {
