@@ -26,7 +26,6 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import fs from 'fs';
-import path from 'path';
 
 // Import routes (except AI routes which will be imported dynamically)
 import authRoutes from './routes/auth.js';
