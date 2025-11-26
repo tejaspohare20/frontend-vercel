@@ -87,6 +87,10 @@ export const AuthProvider = ({ children }) => {
       // Log the API base URL to verify it's correct
       console.log('API Base URL:', axios.defaults.baseURL)
       
+      // Log the full request URL
+      const fullURL = `${axios.defaults.baseURL}/api/auth/login`
+      console.log('Full login request URL:', fullURL)
+      
       const response = await axios.post('/api/auth/login', { email, password })
       console.log('Login response:', response.data)
       const { token, user } = response.data
@@ -122,7 +126,15 @@ export const AuthProvider = ({ children }) => {
       
       // Handle specific HTTP status codes
       if (error.response) {
+        console.error('Error status:', error.response.status)
+        console.error('Error data:', error.response.data)
+        
         switch (error.response.status) {
+          case 404:
+            return {
+              success: false,
+              error: `Endpoint not found. Please check if the backend is running and accessible at ${axios.defaults.baseURL}`
+            }
           case 401:
             return {
               success: false,
@@ -196,6 +208,10 @@ export const AuthProvider = ({ children }) => {
       // Log the API base URL to verify it's correct
       console.log('API Base URL:', axios.defaults.baseURL)
       
+      // Log the full request URL
+      const fullURL = `${axios.defaults.baseURL}/api/auth/register`
+      console.log('Full signup request URL:', fullURL)
+      
       const response = await axios.post('/api/auth/register', requestData)
       console.log('Signup response:', response.data)
       
@@ -232,7 +248,15 @@ export const AuthProvider = ({ children }) => {
       
       // Handle specific HTTP status codes
       if (error.response) {
+        console.error('Error status:', error.response.status)
+        console.error('Error data:', error.response.data)
+        
         switch (error.response.status) {
+          case 404:
+            return {
+              success: false,
+              error: `Endpoint not found. Please check if the backend is running and accessible at ${axios.defaults.baseURL}`
+            }
           case 400:
             return {
               success: false,
