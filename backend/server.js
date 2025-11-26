@@ -117,10 +117,27 @@ if (process.env.NODE_ENV === 'production') {
     
     // Catch-all handler for client-side routing
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexPath = path.join(distPath, 'index.html');
+      // Check if index.html exists before serving it
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        // If index.html doesn't exist, send a simple API response
+        res.status(404).json({ 
+          message: 'Frontend files not found. This is a backend API server.', 
+          apiDocs: '/health' 
+        });
+      }
     });
   } else {
     console.log('Dist directory not found, skipping static file serving');
+    // Add a simple catch-all for when there's no frontend
+    app.get('*', (req, res) => {
+      res.status(404).json({ 
+        message: 'Frontend files not found. This is a backend API server.', 
+        apiDocs: '/health' 
+      });
+    });
   }
 }
 
