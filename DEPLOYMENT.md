@@ -16,7 +16,7 @@ Recommended options:
 1. Ensure your [.env](file:///C:/Users/tejas/OneDrive/Desktop/Final_project/frontend/backend/.env) file has the correct environment variables:
    ```
    PORT=5002
-   MONGODB_URI=mongodb+srv://tejaspohare20_db_user:Tejas2005@cluster0.xfi78wm.mongodb.net/speak-better?retryWrites=true&w=majority
+   MONGODB_URI=your-mongodb-uri-here
    JWT_SECRET=your-secret-key-change-in-production
    GROQ_API_KEY=groq_api_key_placeholder
    ```
@@ -34,7 +34,7 @@ For most platforms, you'll need to:
 ### 4. Environment Variables for Production
 Set these in your hosting platform's environment variable settings:
 ```
-MONGODB_URI=mongodb+srv://tejaspohare20_db_user:Tejas2005@cluster0.xfi78wm.mongodb.net/speak-better?retryWrites=true&w=majority
+MONGODB_URI=your-mongodb-uri-here
 JWT_SECRET=your-production-secret-key-here
 GROQ_API_KEY=groq_api_key_placeholder
 NODE_ENV=production

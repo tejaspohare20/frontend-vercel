@@ -3,8 +3,8 @@ import axios from 'axios'
 
 const AuthContext = createContext()
 
-// Configure axios base URL - use deployed backend URL
-const API_BASE_URL = 'https://vercel-backend-1-js1a.onrender.com'
+// Configure axios base URL - use local backend URL
+const API_BASE_URL = 'http://localhost:5002'
 axios.defaults.baseURL = API_BASE_URL
 
 // Add timeout to axios requests for better mobile handling
