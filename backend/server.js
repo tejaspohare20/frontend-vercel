@@ -25,6 +25,8 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import fs from 'fs';
+import path from 'path';
 
 // Import routes (except AI routes which will be imported dynamically)
 import authRoutes from './routes/auth.js';
@@ -53,14 +55,14 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:5173", "https://vercel-frontend-phi-one.vercel.app"],
+    origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:5173", "https://vercel-frontend-phi-one.vercel.app", "https://frontend-one-delta-75.vercel.app"],
     methods: ["GET", "POST"]
   }
 });
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'https://vercel-frontend-phi-one.vercel.app'],
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'https://vercel-frontend-phi-one.vercel.app', 'https://frontend-one-delta-75.vercel.app'],
   credentials: true
 }));
 app.use(express.json());
@@ -107,15 +109,20 @@ app.use('/api/contacts', contactsRoutes);
 
 // Serve static files from the React app build directory in production
 if (process.env.NODE_ENV === 'production') {
-  const path = (await import('path')).default;
-  const __dirname = (await import('path')).dirname(fileURLToPath(import.meta.url));
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const distPath = path.join(__dirname, '../dist');
   
-  app.use(express.static(path.join(__dirname, '../dist')));
-  
-  // Catch-all handler for client-side routing
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
-  });
+  // Check if dist directory exists before serving static files
+  if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    
+    // Catch-all handler for client-side routing
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  } else {
+    console.log('Dist directory not found, skipping static file serving');
+  }
 }
 
 // Add a health check endpoint
