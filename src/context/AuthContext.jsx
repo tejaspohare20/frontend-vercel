@@ -3,11 +3,12 @@ import axios from 'axios'
 
 const AuthContext = createContext()
 
-// Configure axios base URL - use environment variable, Cyclic URL, or fallback to local backend URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-                     (typeof window !== 'undefined' && window.location ? `${window.location.origin}/api` : '') ||
-                     'http://localhost:5002'
+// Configure axios base URL - use environment variable or fallback to local backend URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002'
 axios.defaults.baseURL = API_BASE_URL
+
+// Log the API base URL for debugging
+console.log('API Base URL configured as:', API_BASE_URL)
 
 // Add timeout to axios requests for better mobile handling
 axios.defaults.timeout = 15000 // 15 seconds
@@ -77,85 +78,43 @@ export const AuthProvider = ({ children }) => {
       } else {
         return {
           success: false,
-          error: 'User not found. Please sign up first.'
+          error: 'User not found'
         }
       }
     }
 
     try {
-      console.log('Attempting login with:', { email })
-      // Log the API base URL to verify it's correct
-      console.log('API Base URL:', axios.defaults.baseURL)
-      
-      // Log the full request URL
-      const fullURL = `${axios.defaults.baseURL}/api/auth/login`
-      console.log('Full login request URL:', fullURL)
-      
       const response = await axios.post('/api/auth/login', { email, password })
-      console.log('Login response:', response.data)
       const { token, user } = response.data
+      
       localStorage.setItem('token', token)
       setToken(token)
       setUser(user)
+      
+      // Set default authorization header for all requests
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      
       return { success: true }
     } catch (error) {
-      console.error('Login error:', error)
-      console.error('Login error response:', error.response)
+      console.error('Login error:', error.response?.data || error.message)
       
-      // More detailed error handling for mobile
-      if (error.code === 'ERR_NETWORK') {
-        return {
-          success: false,
-          error: 'Network error. Please check your connection and try again.'
-        }
-      }
-      
-      // Handle network errors specifically
-      if (!error.response) {
-        console.error('Network error details:', {
-          baseURL: axios.defaults.baseURL,
-          requestURL: '/api/auth/login',
-          fullURL: `${axios.defaults.baseURL}/api/auth/login`
-        });
-        return {
-          success: false,
-          error: 'Network error. Please check your connection and try again.'
-        }
-      }
-      
-      // Handle specific HTTP status codes
-      if (error.response) {
-        console.error('Error status:', error.response.status)
-        console.error('Error data:', error.response.data)
-        
-        switch (error.response.status) {
-          case 404:
-            return {
-              success: false,
-              error: `Endpoint not found. Please check if the backend is running and accessible at ${axios.defaults.baseURL}`
-            }
-          case 401:
-            return {
-              success: false,
-              error: 'Invalid credentials. Please check your email and password.'
-            }
-          case 500:
-            return {
-              success: false,
-              error: 'Server error. Please try again in a few moments.'
-            }
-          default:
-            return {
-              success: false,
-              error: error.response.data?.message || `Login failed with status ${error.response.status}`
-            }
-        }
-      }
-      
-      return {
-        success: false,
-        error: error.response?.data?.message || 'Login failed. Please try again.'
+      // Handle specific error cases
+      switch (error.response?.status) {
+        case 401:
+          return {
+            success: false,
+            error: 'Invalid email or password'
+          }
+        case 500:
+          return {
+            success: false,
+            error: 'Server error. Please try again later.'
+          }
+        default:
+          return {
+            success: false,
+            error: error.response.data?.message || `Login failed with status ${error.response.status}`
+          }
       }
     }
   }
@@ -196,117 +155,69 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      console.log('Attempting signup with:', { name, email })
-      // Add detailed request logging
-      const requestData = {
+      const response = await axios.post('/api/auth/register', { 
         username: name,
-        email,
-        password
-      }
-      console.log('Signup request data:', requestData)
-      
-      // Log the API base URL to verify it's correct
-      console.log('API Base URL:', axios.defaults.baseURL)
-      
-      // Log the full request URL
-      const fullURL = `${axios.defaults.baseURL}/api/auth/register`
-      console.log('Full signup request URL:', fullURL)
-      
-      const response = await axios.post('/api/auth/register', requestData)
-      console.log('Signup response:', response.data)
+        email, 
+        password 
+      })
       
       const { token, user } = response.data
+      
       localStorage.setItem('token', token)
       setToken(token)
       setUser(user)
+      
+      // Set default authorization header for all requests
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      
       return { success: true }
     } catch (error) {
-      console.error('Signup error:', error)
-      console.error('Signup error response:', error.response)
+      console.error('Signup error:', error.response?.data || error.message)
       
-      // More detailed error handling for mobile
-      if (error.code === 'ERR_NETWORK') {
-        return {
-          success: false,
-          error: 'Network error. Please check your connection and try again.'
-        }
-      }
-      
-      // Handle network errors specifically
-      if (!error.response) {
-        console.error('Network error details:', {
-          baseURL: axios.defaults.baseURL,
-          requestURL: '/api/auth/register',
-          fullURL: `${axios.defaults.baseURL}/api/auth/register`
-        });
-        return {
-          success: false,
-          error: 'Network error. Please check your connection and try again.'
-        }
-      }
-      
-      // Handle specific HTTP status codes
-      if (error.response) {
-        console.error('Error status:', error.response.status)
-        console.error('Error data:', error.response.data)
-        
-        switch (error.response.status) {
-          case 404:
-            return {
-              success: false,
-              error: `Endpoint not found. Please check if the backend is running and accessible at ${axios.defaults.baseURL}`
-            }
-          case 400:
-            return {
-              success: false,
-              error: 'Invalid input. Please check your details.'
-            }
-          case 401:
-            return {
-              success: false,
-              error: 'Unauthorized. Please try again.'
-            }
-          case 500:
-            return {
-              success: false,
-              error: 'Server error. Please try again in a few moments.'
-            }
-          default:
-            return {
-              success: false,
-              error: error.response.data?.message || `Signup failed with status ${error.response.status}`
-            }
-        }
-      }
-      
-      return {
-        success: false,
-        error: error.response?.data?.message || 'Signup failed. Please try again.'
+      // Handle specific error cases
+      switch (error.response?.status) {
+        case 400:
+          return {
+            success: false,
+            error: error.response.data?.message || 'Invalid input data'
+          }
+        case 500:
+          return {
+            success: false,
+            error: 'Server error. Please try again later.'
+          }
+        default:
+          return {
+            success: false,
+            error: error.response?.data?.message || 'Signup failed. Please try again.'
+          }
       }
     }
   }
 
   const logout = () => {
     localStorage.removeItem('token')
-    if (DEV_MODE) {
-      localStorage.removeItem('dev_user')
-    }
+    delete axios.defaults.headers.common['Authorization']
     setToken(null)
     setUser(null)
-    delete axios.defaults.headers.common['Authorization']
   }
+
+  // Add isAuthenticated property
+  const isAuthenticated = !!user && !!token
 
   const value = {
     user,
-    loading,
     login,
     signup,
     logout,
-    isAuthenticated: !!token
+    loading,
+    token,
+    isAuthenticated // Add isAuthenticated to the context value
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
-
-export default AuthContext

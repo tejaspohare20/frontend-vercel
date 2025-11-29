@@ -38,6 +38,7 @@ import progressRoutes from './routes/progress.js';
 import leaderboardRoutes from './routes/leaderboard.js';
 import achievementsRoutes from './routes/achievements.js';
 import microLearningRoutes from './routes/microLearning.js';
+import MicroLesson from './models/MicroLesson.js'; // Import to ensure model is registered
 import adminRoutes from './routes/admin.js';
 import contactsRoutes from './routes/contacts.js';
 
@@ -163,7 +164,7 @@ httpServer.listen(PORT, () => {
 // Socket.IO for peer chat - Random matching system
 let waitingUsers = [];
 const activeRooms = new Map();
-const onlineUsers = new Map(); // Track all online users
+const onlineUsers = new Map();
 
 // Function to broadcast online users count
 function broadcastOnlineStats() {
@@ -338,3 +339,6 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
+
+// Import and schedule the leaderboard cache clearing job
+import './jobs/clearLeaderboardCache.js';

@@ -7,6 +7,7 @@ const Admin = () => {
   const [analytics, setAnalytics] = useState(null)
   const [recentActivity, setRecentActivity] = useState([])
   const [loading, setLoading] = useState(true)
+  const [cacheClearing, setCacheClearing] = useState(false)
 
   useEffect(() => {
     fetchAllData()
@@ -35,6 +36,27 @@ const Admin = () => {
     }
   }
 
+  const clearLeaderboardCache = async () => {
+    setCacheClearing(true)
+    try {
+      const token = localStorage.getItem('token')
+      const headers = { 'Authorization': `Bearer ${token}` }
+      
+      await axios.post('/api/admin/leaderboard/clear-cache', {}, { headers })
+      
+      // Show success message
+      alert('Leaderboard cache cleared successfully!')
+      
+      // Refresh the data
+      fetchAllData()
+    } catch (error) {
+      console.error('Failed to clear leaderboard cache:', error)
+      alert('Failed to clear leaderboard cache: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setCacheClearing(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50">
@@ -60,43 +82,56 @@ const Admin = () => {
             Admin <span className="text-primary-600">Dashboard</span>
           </h1>
           <p className="text-neutral-600 mt-2 font-medium">Monitor platform activity and user statistics</p>
-          <button
-            onClick={fetchAllData}
-            className="mt-4 px-4 py-2 rounded-xl bg-primary-500 text-white hover:bg-primary-600 transition-all font-semibold shadow-sm"
-          >
-            🔄 Refresh Data
-          </button>
+          <div className="flex gap-3 mt-4">
+            <button
+              onClick={fetchAllData}
+              className="px-4 py-2 rounded-xl bg-primary-500 text-white hover:bg-primary-600 transition-all font-semibold shadow-sm"
+            >
+              🔄 Refresh Data
+            </button>
+            <button
+              onClick={clearLeaderboardCache}
+              disabled={cacheClearing}
+              className={`px-4 py-2 rounded-xl font-semibold shadow-sm transition-all ${
+                cacheClearing 
+                  ? 'bg-neutral-300 text-neutral-600 cursor-not-allowed' 
+                  : 'bg-warning-500 text-white hover:bg-warning-600'
+              }`}
+            >
+              {cacheClearing ? 'Clearing...' : '🧹 Clear Leaderboard Cache'}
+            </button>
+          </div>
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
           <div className="bg-white border border-neutral-200 rounded-2xl p-6 shadow-card">
             <p className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">Total Users</p>
-            <p className="mt-3 text-4xl font-display font-bold text-neutral-800">{stats?.statistics.totalUsers || 0}</p>
-            <p className="mt-2 text-sm text-success-600 font-medium">All time</p>
+            <p className="mt-3 text-4xl font-display font-bold text-neutral-800">{stats?.statistics?.totalUsers || 0}</p>
+            <p className="mt-2 text-sm text-neutral-600 font-medium">Registered accounts</p>
           </div>
 
           <div className="bg-white border border-neutral-200 rounded-2xl p-6 shadow-card">
             <p className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">New Today</p>
-            <p className="mt-3 text-4xl font-display font-bold text-primary-600">{stats?.statistics.newUsersToday || 0}</p>
+            <p className="mt-3 text-4xl font-display font-bold text-success-600">{stats?.statistics?.newUsersToday || 0}</p>
             <p className="mt-2 text-sm text-neutral-600 font-medium">Last 24 hours</p>
           </div>
 
           <div className="bg-white border border-neutral-200 rounded-2xl p-6 shadow-card">
-            <p className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">This Week</p>
-            <p className="mt-3 text-4xl font-display font-bold text-purple-600">{stats?.statistics.newUsersThisWeek || 0}</p>
+            <p className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">New This Week</p>
+            <p className="mt-3 text-4xl font-display font-bold text-purple-600">{stats?.statistics?.newUsersThisWeek || 0}</p>
             <p className="mt-2 text-sm text-neutral-600 font-medium">Last 7 days</p>
           </div>
 
           <div className="bg-white border border-neutral-200 rounded-2xl p-6 shadow-card">
             <p className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">Sessions</p>
-            <p className="mt-3 text-4xl font-display font-bold text-neutral-800">{stats?.statistics.totalSessions || 0}</p>
+            <p className="mt-3 text-4xl font-display font-bold text-neutral-800">{stats?.statistics?.totalSessions || 0}</p>
             <p className="mt-2 text-sm text-neutral-600 font-medium">Practice total</p>
           </div>
 
           <div className="bg-white border border-neutral-200 rounded-2xl p-6 shadow-card">
             <p className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">Achievements</p>
-            <p className="mt-3 text-4xl font-display font-bold text-neutral-800">{stats?.statistics.totalAchievements || 0}</p>
+            <p className="mt-3 text-4xl font-display font-bold text-neutral-800">{stats?.statistics?.totalAchievements || 0}</p>
             <p className="mt-2 text-sm text-neutral-600 font-medium">Unlocked</p>
           </div>
         </div>
@@ -121,89 +156,88 @@ const Admin = () => {
                       </div>
                       <div>
                         <p className="font-semibold text-neutral-800">{user.username}</p>
-                        <p className="text-xs text-neutral-600">{user.email}</p>
+                        {/* Removed email for security */}
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-primary-600 font-semibold">{user.totalPoints} pts</p>
+                      <p className="font-bold text-neutral-800">{user.totalPoints} pts</p>
                       <p className="text-xs text-neutral-600">Level {user.level}</p>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-neutral-500">No users yet</p>
+                <p className="text-neutral-600 text-sm">No top performers found</p>
               )}
             </div>
           </div>
 
-          {/* Recent Registrations */}
+          {/* Recent Activity */}
           <div className="bg-white border border-neutral-200 rounded-2xl p-6 shadow-card">
-            <h2 className="text-2xl font-display font-semibold text-neutral-800 mb-4">👥 Recent Users</h2>
-            <div className="space-y-3 max-h-[400px] overflow-y-auto">
-              {stats?.recentUsers && stats.recentUsers.length > 0 ? (
-                stats.recentUsers.map((user) => (
-                  <div key={user._id} className="flex items-center justify-between bg-neutral-50 rounded-xl p-3 border border-neutral-200">
+            <h2 className="text-2xl font-display font-semibold text-neutral-800 mb-4">⚡ Recent Activity</h2>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {recentActivity && recentActivity.length > 0 ? (
+                recentActivity.slice(0, 10).map((session) => (
+                  <div key={session._id} className="flex items-center justify-between bg-neutral-50 rounded-xl p-3 border border-neutral-200">
                     <div>
-                      <p className="font-semibold text-neutral-800">{user.username}</p>
-                      <p className="text-xs text-neutral-600">{user.email}</p>
+                      <p className="font-semibold text-neutral-800 text-sm">{session.userId?.username || session.user?.username || 'Unknown User'}</p>
+                      {/* Removed email for security */}
+                      <p className="text-xs text-neutral-600">
+                        {new Date(session.date).toLocaleString()}
+                      </p>
                     </div>
                     <div className="text-right">
+                      <p className="font-bold text-neutral-800">{session.score}/100</p>
                       <p className="text-xs text-neutral-600">
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {Math.floor(session.duration / 60)} min
                       </p>
-                      <p className="text-xs text-primary-600 font-medium">{user.totalPoints} pts</p>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-neutral-500">No users yet</p>
+                <p className="text-neutral-600 text-sm">No recent activity found</p>
               )}
             </div>
           </div>
         </div>
 
-        {/* Recent Activity */}
+        {/* Detailed User List */}
         <div className="bg-white border border-neutral-200 rounded-2xl p-6 shadow-card">
-          <h2 className="text-2xl font-display font-semibold text-neutral-800 mb-4">📊 Recent Activity</h2>
+          <h2 className="text-2xl font-display font-semibold text-neutral-800 mb-4">👥 Recent Users</h2>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="min-w-full divide-y divide-neutral-200">
               <thead>
-                <tr className="border-b border-neutral-200">
+                <tr>
                   <th className="text-left py-3 px-4 text-xs uppercase tracking-wide text-neutral-500 font-semibold">User</th>
-                  <th className="text-left py-3 px-4 text-xs uppercase tracking-wide text-neutral-500 font-semibold">Activity</th>
-                  <th className="text-left py-3 px-4 text-xs uppercase tracking-wide text-neutral-500 font-semibold">Score</th>
-                  <th className="text-left py-3 px-4 text-xs uppercase tracking-wide text-neutral-500 font-semibold">Duration</th>
-                  <th className="text-left py-3 px-4 text-xs uppercase tracking-wide text-neutral-500 font-semibold">Date</th>
+                  {/* Removed Email column for security */}
+                  <th className="text-left py-3 px-4 text-xs uppercase tracking-wide text-neutral-500 font-semibold">Points</th>
+                  <th className="text-left py-3 px-4 text-xs uppercase tracking-wide text-neutral-500 font-semibold">Level</th>
+                  <th className="text-left py-3 px-4 text-xs uppercase tracking-wide text-neutral-500 font-semibold">Joined</th>
                 </tr>
               </thead>
               <tbody>
-                {recentActivity && recentActivity.length > 0 ? (
-                  recentActivity.map((session, idx) => (
-                    <tr key={session._id || idx} className="border-b border-neutral-100 hover:bg-neutral-50">
+                {stats?.users && stats.users.length > 0 ? (
+                  stats.users.map((user) => (
+                    <tr key={user._id} className="border-b border-neutral-100 hover:bg-neutral-50">
                       <td className="py-3 px-4">
-                        <p className="text-neutral-800 font-semibold">{session.userId?.username || 'Unknown'}</p>
-                        <p className="text-xs text-neutral-600">{session.userId?.email || 'N/A'}</p>
+                        <p className="text-neutral-800 font-semibold">{user.username}</p>
                       </td>
-                      <td className="py-3 px-4 text-neutral-700 font-medium">Practice Session</td>
+                      {/* Removed email cell for security */}
+                      <td className="py-3 px-4 font-bold text-neutral-800">{user.totalPoints || 0}</td>
                       <td className="py-3 px-4">
-                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                          session.score >= 80 ? 'bg-success-100 text-success-700' :
-                          session.score >= 60 ? 'bg-warning-100 text-warning-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {session.score}/100
+                        <span className="px-2 py-1 rounded-full bg-primary-100 text-primary-800 text-xs font-semibold">
+                          {user.level || 1}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-neutral-700 font-medium">{session.duration} sec</td>
                       <td className="py-3 px-4 text-neutral-600 text-sm">
-                        {new Date(session.date).toLocaleString()}
+                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="py-8 text-center text-neutral-500">
-                      No recent activity
+                    <td colSpan="4" className="py-6 text-center text-neutral-600">
+                      {/* Updated colspan to match new column count */}
+                      No users found
                     </td>
                   </tr>
                 )}
@@ -211,28 +245,6 @@ const Admin = () => {
             </table>
           </div>
         </div>
-
-        {/* User Growth Chart (Simple text-based for now) */}
-        {analytics?.userGrowth && analytics.userGrowth.length > 0 && (
-          <div className="mt-8 bg-white border border-neutral-200 rounded-2xl p-6 shadow-card">
-            <h2 className="text-2xl font-display font-semibold text-neutral-800 mb-4">📈 User Growth (Last 30 Days)</h2>
-            <div className="space-y-2">
-              {analytics.userGrowth.slice(-7).map((day) => (
-                <div key={day._id} className="flex items-center gap-4">
-                  <p className="text-neutral-600 w-28 font-medium">{day._id}</p>
-                  <div className="flex-1 bg-neutral-100 rounded-full h-6 overflow-hidden">
-                    <div 
-                      className="bg-primary-500 h-full rounded-full flex items-center justify-end px-2"
-                      style={{ width: `${(day.count / Math.max(...analytics.userGrowth.map(d => d.count))) * 100}%` }}
-                    >
-                      <span className="text-xs font-semibold text-white">{day.count}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

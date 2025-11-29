@@ -1,17 +1,6 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-const links = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/ai-practice', label: 'AI Practice' },
-  { to: '/peer-chat', label: 'Peer Chat' },
-  { to: '/micro-learning', label: 'Micro Learning' },
-  { to: '/progress', label: 'Progress' },
-  { to: '/achievements', label: 'Achievements' },
-  { to: '/leaderboard', label: 'Leaderboard' },
-  { to: '/admin', label: 'Admin' },
-]
-
 const Navbar = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -20,6 +9,14 @@ const Navbar = () => {
     logout()
     navigate('/login')
   }
+
+  // Filter links based on user role
+  const filteredLinks = links.filter(link => {
+    if (link.to === '/admin') {
+      return user?.isAdmin;
+    }
+    return true;
+  });
 
   return (
     <div className="sticky top-0 z-40 backdrop-blur-md bg-white/80 border-b border-neutral-200 shadow-sm">
@@ -37,7 +34,7 @@ const Navbar = () => {
           </Link>
 
           <div className="hidden lg:flex items-center space-x-1">
-            {links.map((link) => (
+            {filteredLinks.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
@@ -75,5 +72,15 @@ const Navbar = () => {
   )
 }
 
-export default Navbar
+const links = [
+  { to: '/dashboard', label: 'Dashboard' },
+  { to: '/ai-practice', label: 'AI Practice' },
+  { to: '/peer-chat', label: 'Peer Chat' },
+  { to: '/micro-learning', label: 'Micro Learning' },
+  { to: '/progress', label: 'Progress' },
+  { to: '/achievements', label: 'Achievements' },
+  { to: '/leaderboard', label: 'Leaderboard' },
+  { to: '/admin', label: 'Admin' },
+]
 
+export default Navbar

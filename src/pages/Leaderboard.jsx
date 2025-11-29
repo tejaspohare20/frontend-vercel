@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import axios from 'axios'
@@ -14,25 +13,20 @@ const Leaderboard = () => {
 
   const fetchLeaderboard = async () => {
     try {
+      setLoading(true)
+      const token = localStorage.getItem('token')
       const response = await axios.get('/api/leaderboard/week', {
         params: { type: filter },
+        headers: { 'Authorization': `Bearer ${token}` }
       })
       if (response.data.leaderboard) {
         setLeaderboard(response.data.leaderboard)
       } else {
-        setLeaderboard([
-          { rank: 1, name: 'Alex Johnson', minutes: 245, lessons: 15, avatar: 'A' },
-          { rank: 2, name: 'Sarah Williams', minutes: 220, lessons: 14, avatar: 'S' },
-          { rank: 3, name: 'Mike Chen', minutes: 198, lessons: 12, avatar: 'M' },
-          { rank: 4, name: 'Emma Davis', minutes: 185, lessons: 11, avatar: 'E' },
-          { rank: 5, name: 'John Smith', minutes: 170, lessons: 10, avatar: 'J' },
-          { rank: 6, name: 'Lisa Brown', minutes: 155, lessons: 9, avatar: 'L' },
-          { rank: 7, name: 'David Lee', minutes: 140, lessons: 8, avatar: 'D' },
-          { rank: 8, name: 'Anna Taylor', minutes: 125, lessons: 7, avatar: 'A' },
-        ])
+        setLeaderboard([])
       }
     } catch (error) {
       console.error('Failed to fetch leaderboard:', error)
+      setLeaderboard([])
     } finally {
       setLoading(false)
     }
@@ -48,6 +42,19 @@ const Leaderboard = () => {
         return 'from-orange-400 via-orange-300 to-orange-500'
       default:
         return 'from-neutral-200 via-neutral-100 to-neutral-300'
+    }
+  }
+
+  const getMedalIcon = (rank) => {
+    switch (rank) {
+      case 1:
+        return '🥇'
+      case 2:
+        return '🥈'
+      case 3:
+        return '🥉'
+      default:
+        return `#${rank}`
     }
   }
 
@@ -81,45 +88,54 @@ const Leaderboard = () => {
         </div>
 
         {loading ? (
-          <div className="text-center py-20 text-neutral-600">Loading leaderboard...</div>
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-neutral-200 border-t-primary-500 mx-auto"></div>
+            <p className="mt-4 text-neutral-600">Loading leaderboard...</p>
+          </div>
         ) : (
           <div className="space-y-4">
-            {leaderboard.map((entry) => (
-              <div
-                key={entry.rank}
-                className="rounded-2xl border-2 border-neutral-200 bg-white p-4 flex items-center justify-between gap-4 hover:border-primary-300 hover:shadow-md transition-all"
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${getBadgeColor(
-                      entry.rank,
-                    )} flex flex-col items-center justify-center text-neutral-900 font-display text-xl shadow-sm`}
-                  >
-                    {entry.rank <= 3 ? ['🥇', '🥈', '🥉'][entry.rank - 1] : `#${entry.rank}`}
+            {leaderboard.length > 0 ? (
+              leaderboard.map((entry) => (
+                <div
+                  key={entry.rank}
+                  className="rounded-2xl border-2 border-neutral-200 bg-white p-4 flex items-center justify-between gap-4 hover:border-primary-300 hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${getBadgeColor(
+                        entry.rank,
+                      )} flex flex-col items-center justify-center text-neutral-900 font-display text-xl shadow-sm`}
+                    >
+                      {getMedalIcon(entry.rank)}
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-neutral-100 border-2 border-neutral-200 flex items-center justify-center text-lg font-semibold text-neutral-700">
+                      {entry.avatar || entry.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-lg font-semibold text-neutral-800">{entry.username}</p>
+                      <p className="text-sm text-neutral-600 font-medium">
+                        {filter === 'minutes'
+                          ? `${entry.lessons} lessons completed`
+                          : `${entry.minutes} minutes practiced`}
+                      </p>
+                    </div>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-neutral-100 border-2 border-neutral-200 flex items-center justify-center text-lg font-semibold text-neutral-700">
-                    {entry.avatar || entry.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="text-lg font-semibold text-neutral-800">{entry.name}</p>
-                    <p className="text-sm text-neutral-600 font-medium">
-                      {filter === 'minutes'
-                        ? `${entry.lessons} lessons completed`
-                        : `${entry.minutes} minutes practiced`}
+
+                  <div className="text-right">
+                    <p className="text-3xl font-display font-bold text-neutral-800">
+                      {filter === 'minutes' ? entry.minutes : entry.lessons}
+                    </p>
+                    <p className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">
+                      {filter === 'minutes' ? 'MINUTES' : 'LESSONS'}
                     </p>
                   </div>
                 </div>
-
-                <div className="text-right">
-                  <p className="text-3xl font-display font-bold text-neutral-800">
-                    {filter === 'minutes' ? entry.minutes : entry.lessons}
-                  </p>
-                  <p className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">
-                    {filter === 'minutes' ? 'MINUTES' : 'LESSONS'}
-                  </p>
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-10">
+                <p className="text-neutral-600">No leaderboard data available yet. Start practicing to appear on the leaderboard!</p>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
@@ -128,4 +144,3 @@ const Leaderboard = () => {
 }
 
 export default Leaderboard
-

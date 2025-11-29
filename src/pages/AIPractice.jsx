@@ -1,44 +1,48 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import axios from 'axios'
+import { useAuth } from '../context/AuthContext'
 
 const AIPractice = () => {
+  const { user, updateUserLevel } = useAuth()
   const [input, setInput] = useState('')
-  const [feedback, setFeedback] = useState('')
-  const [loading, setLoading] = useState(false)
   const [sessions, setSessions] = useState([])
-  const [isRecording, setIsRecording] = useState(false)
   const [chatMessages, setChatMessages] = useState([])
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('practice') // 'practice' or 'chat'
+  // Comprehensive feedback states
+  const [comprehensiveFeedback, setComprehensiveFeedback] = useState(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
   const [transcript, setTranscript] = useState('')
-  const [selectedMode, setSelectedMode] = useState('Daily Conversation')
+  const [showLevelUp, setShowLevelUp] = useState(false)
+  const [newLevel, setNewLevel] = useState(1)
   const recognitionRef = useRef(null)
 
-  const practiceModes = {
-    'Daily Conversation': {
-      prompt: 'Practice everyday English conversations like ordering food, asking for directions, or talking about hobbies. Focus on natural flow and common phrases.',
-      tips: 'Use common expressions, maintain natural rhythm, practice greetings'
-    },
-    'Business English': {
-      prompt: 'Practice professional communication like meetings, presentations, or emails. Focus on formal vocabulary and clear structure.',
-      tips: 'Use professional terms, maintain formal tone, structure your points'
-    },
-    'Pronunciation Practice': {
-      prompt: 'Focus on clear pronunciation of challenging words and sounds. Practice tongue twisters and commonly mispronounced words.',
-      tips: 'Speak slowly and clearly, focus on difficult sounds, repeat words'
-    },
-    'Grammar Correction': {
-      prompt: 'Practice speaking with correct grammar. Focus on verb tenses, sentence structure, and avoiding common mistakes.',
-      tips: 'Check subject-verb agreement, use correct tenses, form complete sentences'
-    }
-  }
-
+  // Fetch sessions on component mount
   useEffect(() => {
-    fetchSessions()
+    const fetchSessions = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const response = await axios.get('/api/ai/practice', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (response.data.sessions) {
+          setSessions(response.data.sessions)
+        }
+      } catch (error) {
+        console.error('Failed to fetch sessions:', error)
+      }
+    }
     
-    // Initialize Speech Recognition
+    fetchSessions()
+  }, [])
+
+  // Initialize Speech Recognition
+  const initializeSpeechRecognition = () => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
       recognitionRef.current = new SpeechRecognition()
@@ -75,50 +79,66 @@ const AIPractice = () => {
         }
       }
     }
-  }, [])
-
-  const fetchSessions = async () => {
-    try {
-      const token = localStorage.getItem('token')
-      const response = await axios.get('/api/ai/practice', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      if (response.data.sessions) {
-        setSessions(response.data.sessions)
-      }
-    } catch (error) {
-      console.error('Failed to fetch sessions:', error)
-    }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  // Check comprehensive feedback function
+  const checkComprehensiveFeedback = async () => {
     if (!input.trim()) return
-
-    setLoading(true)
+    
+    setIsAnalyzing(true)
+    setComprehensiveFeedback(null)
+    setShowLevelUp(false)
+    
     try {
       const token = localStorage.getItem('token')
-      const response = await axios.post('/api/ai/practice', {
-        transcript: input,
-        duration: 30,
+      const response = await axios.post('/api/ai/comprehensive-feedback', {
+        text: input
       }, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
-      setFeedback(response.data.feedback || 'Great practice! Keep it up.')
-      setInput('')
-      fetchSessions()
+      
+      if (response.data.feedback) {
+        setComprehensiveFeedback(response.data.feedback)
+      }
+      
+      // Check if user leveled up
+      if (response.data.leveledUp) {
+        setNewLevel(response.data.level)
+        setShowLevelUp(true)
+        // Update the user level in the context
+        updateUserLevel(response.data.level)
+        
+        // Hide level up notification after 5 seconds
+        setTimeout(() => {
+          setShowLevelUp(false)
+        }, 5000)
+      }
     } catch (error) {
-      setFeedback('Error: Could not get AI feedback. Please try again.')
+      console.error('Comprehensive feedback error:', error)
+      setComprehensiveFeedback({
+        pronunciation: ["Unable to analyze at the moment"],
+        fluency: ["Unable to analyze at the moment"],
+        tone: ["Unable to analyze at the moment"],
+        grammar: ["Unable to analyze at the moment"],
+        vocabulary: ["Unable to analyze at the moment"],
+        fillers: ["Unable to analyze at the moment"],
+        accent: ["Unable to analyze at the moment"],
+        clarity: ["Unable to analyze at the moment"],
+        score: 0,
+        suggestions: ["Please try again later"]
+      })
     } finally {
-      setLoading(false)
+      setIsAnalyzing(false)
     }
   }
 
   const handleStartRecording = () => {
+    if (!recognitionRef.current) {
+      initializeSpeechRecognition()
+    }
+    
     if (!recognitionRef.current) {
       alert('Speech recognition is not supported in your browser. Please use Chrome or Edge.')
       return
@@ -152,7 +172,6 @@ const AIPractice = () => {
 
     try {
       const token = localStorage.getItem('token')
-      console.log('Sending chat message to backend:', chatInput)
       const response = await axios.post('/api/ai/chat', {
         message: chatInput,
         history: chatMessages.slice(-5) // Send last 5 messages for context
@@ -162,7 +181,6 @@ const AIPractice = () => {
         }
       })
     
-      console.log('Received response from backend:', response.data)
       const aiMessage = { 
         role: 'assistant', 
         content: response.data.reply || 'I apologize, but I couldn\'t generate a response.',
@@ -182,28 +200,158 @@ const AIPractice = () => {
     }
   }
 
-  const sessionPalette = ['from-primary-500/40', 'from-secondary-500/40', 'from-success-400/40']
+  // Render comprehensive feedback
+  const renderComprehensiveFeedback = () => {
+    if (!comprehensiveFeedback) return null
+
+    const feedbackItems = [
+      { 
+        title: "Pronunciation", 
+        icon: "👄", 
+        items: comprehensiveFeedback.pronunciation,
+        color: "text-purple-600"
+      },
+      { 
+        title: "Fluency & Speed", 
+        icon: "🌊", 
+        items: comprehensiveFeedback.fluency,
+        color: "text-blue-600"
+      },
+      { 
+        title: "Tone / Confidence", 
+        icon: "🎭", 
+        items: comprehensiveFeedback.tone,
+        color: "text-green-600"
+      },
+      { 
+        title: "Grammar Corrections", 
+        icon: "✏️", 
+        items: comprehensiveFeedback.grammar,
+        color: "text-red-600"
+      },
+      { 
+        title: "Vocabulary Improvement", 
+        icon: "📚", 
+        items: comprehensiveFeedback.vocabulary,
+        color: "text-yellow-600"
+      },
+      { 
+        title: "Fillers & Clarity", 
+        icon: "🔇", 
+        items: comprehensiveFeedback.fillers,
+        color: "text-indigo-600"
+      },
+      { 
+        title: "Accent Errors", 
+        icon: "🌍", 
+        items: comprehensiveFeedback.accent,
+        color: "text-pink-600"
+      },
+      { 
+        title: "Clarity & Articulation", 
+        icon: "🔊", 
+        items: comprehensiveFeedback.clarity,
+        color: "text-teal-600"
+      }
+    ]
+
+    return (
+      <div className="rounded-2xl border-2 border-info-300 bg-info-50 p-5 mt-4">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs uppercase tracking-wide text-info-700 font-semibold">
+            Real-Time AI Feedback
+          </p>
+          {isAnalyzing && (
+            <span className="flex items-center text-xs text-info-600">
+              <span className="h-2 w-2 rounded-full bg-info-500 animate-pulse mr-2"></span>
+              Analyzing...
+            </span>
+          )}
+        </div>
+        
+        {/* Progress Score */}
+        <div className="mb-5 p-4 bg-white rounded-xl border border-success-200">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-semibold text-success-800">Overall Score</h3>
+            <span className="text-2xl font-bold text-success-600">{comprehensiveFeedback.score}/100</span>
+          </div>
+          <div className="w-full bg-neutral-200 rounded-full h-2.5">
+            <div 
+              className="bg-success-600 h-2.5 rounded-full" 
+              style={{ width: `${comprehensiveFeedback.score}%` }}
+            ></div>
+          </div>
+          <p className="text-xs text-neutral-500 mt-2">
+            {comprehensiveFeedback.score >= 90 
+              ? "Excellent! Near-native proficiency" 
+              : comprehensiveFeedback.score >= 70 
+                ? "Good! Keep practicing to improve" 
+                : "Needs improvement. Focus on suggestions below"}
+          </p>
+        </div>
+        
+        {/* Feedback Categories */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {feedbackItems.map((category, index) => (
+            <div key={index} className="bg-white rounded-xl p-4 border border-neutral-200">
+              <div className="flex items-center mb-3">
+                <span className="text-xl mr-2">{category.icon}</span>
+                <h4 className={`font-semibold ${category.color}`}>{category.title}</h4>
+              </div>
+              <ul className="text-neutral-700 text-sm space-y-1">
+                {category.items.map((item, itemIndex) => (
+                  <li key={itemIndex} className="flex items-start">
+                    <span className="text-success-500 mr-2">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        
+        {/* Personalized Suggestions */}
+        {comprehensiveFeedback.suggestions && comprehensiveFeedback.suggestions.length > 0 && (
+          <div className="mt-5 p-4 bg-gradient-to-r from-primary-50 to-purple-50 rounded-xl border border-primary-200">
+            <h4 className="font-semibold text-primary-800 mb-2">Personalized Practice Suggestions</h4>
+            <ul className="text-primary-700 space-y-1">
+              {comprehensiveFeedback.suggestions.map((suggestion, index) => (
+                <li key={index} className="flex items-start">
+                  <span className="text-primary-500 mr-2">💡</span>
+                  <span>{suggestion}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-neutral-50">
       <Navbar />
+      {showLevelUp && (
+        <div className="fixed top-4 right-4 z-50 animate-bounce">
+          <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-3 rounded-2xl shadow-lg font-bold flex items-center gap-2">
+            <span className="text-2xl">🎉</span>
+            <span>Level Up! You're now Level {newLevel}</span>
+          </div>
+        </div>
+      )}
       <div className="relative max-w-7xl mx-auto px-6 py-8">
-        <header className="mb-8 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        <header className="mb-8">
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-100 border border-primary-300 mb-3">
               <span className="text-xl">🎤</span>
-              <span className="text-xs font-semibold text-primary-700 uppercase tracking-wide">AI Practice Studio</span>
+              <span className="text-xs font-semibold text-primary-700 uppercase tracking-wide">AI Speaking Coach</span>
             </div>
             <h1 className="text-4xl font-display font-bold text-neutral-800">
-              Command your voice. <span className="text-primary-600">Train with AI.</span>
+              Real-time <span className="text-primary-600">Speaking Analysis</span>
             </h1>
             <p className="mt-3 text-neutral-600 max-w-2xl">
-              Real-time fluency insights, pronunciation coaching, and transcript intelligence designed to level up your
-              delivery in minutes.
+              Get instant AI-powered feedback on pronunciation, fluency, grammar, and more as you practice speaking English.
             </p>
-          </div>
-          <div className="bg-white border border-neutral-200 rounded-xl px-5 py-3 text-sm shadow-sm">
-            <span className="text-neutral-800 font-semibold">{sessions.length}</span> <span className="text-neutral-600">sessions logged</span>
           </div>
         </header>
 
@@ -217,7 +365,7 @@ const AIPractice = () => {
                 : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
             }`}
           >
-            Practice Mode
+            Speaking Practice
           </button>
           <button
             onClick={() => setActiveTab('chat')}
@@ -232,44 +380,21 @@ const AIPractice = () => {
         </div>
 
         {activeTab === 'practice' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-[1.2fr,0.8fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <section className="bg-white border border-neutral-200 rounded-2xl p-6 space-y-6 shadow-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">Session builder</p>
-                <h2 className="text-2xl font-display font-semibold text-neutral-800">Design your drill</h2>
-              </div>
-              <span className="px-4 py-2 rounded-full bg-primary-100 border border-primary-300 text-xs uppercase tracking-wide text-primary-700 font-semibold">
-                Beta v2.3
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.keys(practiceModes).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setSelectedMode(mode)}
-                  className={`px-4 py-3 rounded-xl border-2 text-left transition-all ${
-                    selectedMode === mode
-                      ? 'border-primary-500 bg-primary-50 shadow-sm'
-                      : 'border-neutral-200 hover:border-primary-300 hover:bg-primary-50'
-                  }`}
-                >
-                  <p className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">Mode</p>
-                  <p className="mt-1 font-semibold text-neutral-800">{mode}</p>
-                  <p className="mt-1 text-xs text-neutral-600">{practiceModes[mode].tips}</p>
-                </button>
-              ))}
+            <div>
+              <p className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">Practice Area</p>
+              <h2 className="text-2xl font-display font-semibold text-neutral-800">Speak or Type Below</h2>
             </div>
 
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={`Prompt: ${practiceModes[selectedMode].prompt}`}
-              className="w-full min-h-[200px] rounded-2xl bg-neutral-50 border-2 border-neutral-200 px-5 py-4 text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-medium transition-all"
+              placeholder="Type or speak any sentence here..."
+              className="w-full min-h-[150px] rounded-2xl bg-neutral-50 border-2 border-neutral-200 px-5 py-4 text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-medium transition-all"
             />
 
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={isRecording ? handleStopRecording : handleStartRecording}
                 className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
@@ -281,71 +406,71 @@ const AIPractice = () => {
                 {isRecording ? (
                   <>
                     <span className="h-3 w-3 rounded-full bg-white animate-pulse" />
-                    <span>🎙️ Recording... Click to Stop</span>
+                    <span>🎙️ Stop Recording</span>
                   </>
                 ) : (
                   <>
-                    <span>🎤 Start Voice Capture</span>
+                    <span>🎤 Start Voice Practice</span>
                   </>
                 )}
               </button>
+              
               <button
-                onClick={handleSubmit}
-                disabled={loading || !input.trim()}
-                className="flex-1 px-4 py-3 rounded-xl font-bold bg-primary-500 text-white hover:bg-primary-600 transition-all disabled:opacity-60 shadow-sm"
+                onClick={checkComprehensiveFeedback}
+                disabled={isAnalyzing || !input.trim()}
+                className="flex-1 px-4 py-3 rounded-xl font-bold bg-primary-500 text-white hover:bg-primary-600 transition-all disabled:opacity-60 shadow-sm flex items-center justify-center"
               >
-                {loading ? '🔄 Analyzing...' : '🤖 Get AI Feedback'}
+                {isAnalyzing ? (
+                  <>
+                    <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></span>
+                    Analyzing...
+                  </>
+                ) : (
+                  '🔍 Get AI Feedback'
+                )}
               </button>
             </div>
 
-            {feedback && (
-              <div className="rounded-2xl border-2 border-success-300 bg-success-50 p-5">
-                <p className="text-xs uppercase tracking-wide text-success-700 font-semibold">AI Feedback</p>
-                <p className="mt-2 text-success-800 font-medium">{feedback}</p>
-              </div>
-            )}
+            {/* Comprehensive feedback display */}
+            {renderComprehensiveFeedback()}
           </section>
 
           <section className="space-y-5">
-            <div className="bg-white border border-neutral-200 rounded-2xl p-6 shadow-card">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-display font-semibold text-neutral-800">Recent Intelligence</h3>
-                <span className="text-xs text-neutral-500 font-medium">Auto-saved</span>
+            <div className="bg-white border border-neutral-200 rounded-2xl p-6">
+              <p className="text-xs uppercase tracking-wide text-neutral-500 font-semibold">Tips for High Scores</p>
+              <h3 className="text-xl font-display font-semibold text-neutral-800 mt-2">Achieving 90+ Scores</h3>
+              <ul className="mt-4 space-y-3 text-neutral-700 text-sm">
+                <li className="flex items-start">
+                  <span className="text-success-500 mr-2">•</span>
+                  <span>Speak clearly with proper pronunciation</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-success-500 mr-2">•</span>
+                  <span>Maintain steady pace without rushing</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-success-500 mr-2">•</span>
+                  <span>Use varied vocabulary and correct grammar</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-success-500 mr-2">•</span>
+                  <span>Avoid filler words like "um", "uh", "like"</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-success-500 mr-2">•</span>
+                  <span>Speak with confidence and clear tone</span>
+                </li>
+              </ul>
+              <div className="mt-4 p-3 bg-success-50 rounded-lg border border-success-200">
+                <p className="text-success-800 text-sm">
+                  <span className="font-semibold">Example high-scoring sentence:</span> "I enjoy learning new languages because it helps me connect with people from different cultures."
+                </p>
               </div>
-              <div className="mt-5 space-y-4 max-h-[520px] overflow-y-auto pr-2">
-                {sessions.length === 0 ? (
-                  <p className="text-neutral-500">No practice sessions yet. Start your first drill!</p>
-                ) : (
-                  sessions.map((session, idx) => (
-                    <div
-                      key={session._id || idx}
-                      className="p-4 rounded-xl border-2 border-neutral-200 bg-neutral-50 hover:border-primary-300 hover:bg-primary-50 transition-all"
-                    >
-                      <div className="flex items-center justify-between text-sm text-neutral-600 font-medium">
-                        <span>{new Date(session.date).toLocaleDateString()}</span>
-                        <span className="text-neutral-800 font-semibold">{session.duration} min</span>
-                      </div>
-                      <p className="mt-3 text-neutral-700 text-sm line-clamp-3 font-medium">{session.transcript}</p>
-                      {session.score && (
-                        <p className="mt-2 text-xs text-primary-600 font-semibold">Score {session.score} / 100</p>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-primary-50 to-purple-50 border border-primary-200 rounded-2xl p-6">
-              <p className="text-xs uppercase tracking-wide text-primary-700 font-semibold">Coaching focus</p>
-              <h3 className="mt-2 text-2xl font-display font-semibold text-neutral-800">Clarity & pace</h3>
-              <p className="mt-2 text-neutral-700 text-sm font-medium">
-                Slow down on key points, build pauses after insights, and anchor your tone with confidence.
-              </p>
             </div>
           </section>
         </div>
         ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr] gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <section className="bg-white border border-neutral-200 rounded-2xl p-6 shadow-card h-[600px] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -427,4 +552,3 @@ const AIPractice = () => {
 }
 
 export default AIPractice
-
