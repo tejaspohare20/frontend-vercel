@@ -61,14 +61,14 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:5173", "https://vercel-frontend-phi-one.vercel.app", "https://frontend-one-delta-75.vercel.app", "https://frontend-afhi.vercel.app", "https://frontend-xz1t.vercel.app", "https://frontend-vercel-ws88.vercel.app"],
+    origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:5173", "https://vercel-frontend-phi-one.vercel.app", "https://frontend-one-delta-75.vercel.app", "https://frontend-afhi.vercel.app", "https://frontend-xz1t.vercel.app", "https://frontend-vercel-ws88.vercel.app", "https://frontend-vercel-tm7g.vercel.app"],
     methods: ["GET", "POST"]
   }
 });
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'https://vercel-frontend-phi-one.vercel.app', 'https://frontend-one-delta-75.vercel.app', 'https://frontend-afhi.vercel.app', 'https://frontend-xz1t.vercel.app', 'https://frontend-vercel-ws88.vercel.app'],
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'https://vercel-frontend-phi-one.vercel.app', 'https://frontend-one-delta-75.vercel.app', 'https://frontend-afhi.vercel.app', 'https://frontend-xz1t.vercel.app', 'https://frontend-vercel-ws88.vercel.app', 'https://frontend-vercel-tm7g.vercel.app'],
   credentials: true
 }));
 app.use(express.json());
