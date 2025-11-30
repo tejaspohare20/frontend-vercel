@@ -71,6 +71,12 @@ app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'https://vercel-frontend-phi-one.vercel.app', 'https://frontend-one-delta-75.vercel.app', 'https://frontend-afhi.vercel.app', 'https://frontend-xz1t.vercel.app', 'https://frontend-vercel-ws88.vercel.app', 'https://frontend-vercel-tm7g.vercel.app'],
   credentials: true
 }));
+
+// Explicitly handle preflight requests for all routes
+app.options('*', cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'https://vercel-frontend-phi-one.vercel.app', 'https://frontend-one-delta-75.vercel.app', 'https://frontend-afhi.vercel.app', 'https://frontend-xz1t.vercel.app', 'https://frontend-vercel-ws88.vercel.app', 'https://frontend-vercel-tm7g.vercel.app'],
+  credentials: true
+}));
 app.use(express.json());
 
 // Request logging middleware
