@@ -7,7 +7,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:5002',
+        target: 'https://backend-railway-2-31ky.onrender.com',
         changeOrigin: true
       }
     }

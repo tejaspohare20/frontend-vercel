@@ -35,7 +35,7 @@ const PeerChat = () => {
 
   useEffect(() => {
     // Use deployed backend URL for WebSocket connection
-    const SOCKET_URL = 'https://vercel-backend-1-js1a.onrender.com'
+    const SOCKET_URL = 'https://backend-railway-2-31ky.onrender.com'
     
     socketRef.current = io(SOCKET_URL, {
       transports: ['websocket'],

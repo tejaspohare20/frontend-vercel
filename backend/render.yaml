@@ -3,5 +3,5 @@ services:
     name: speak-better-backend
     env: node
     buildCommand: npm install
-    startCommand: node backend/server.js
+    startCommand: node server.js
     rootDir: backend

@@ -8,8 +8,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seed:microlessons": "node seedMicroLessons.js",
-    "build-frontend": "cd ../ && npm run build",
-    "postinstall": "npm run build-frontend"
+    "test-path": "node test-path.js"
   },
   "keywords": [
     "ai",
