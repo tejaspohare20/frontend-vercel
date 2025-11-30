@@ -96,6 +96,37 @@ app.use((req, res, next) => {
   next();
 });
 
+// Add CORS headers manually to all responses as a fallback
+app.use((req, res, next) => {
+  const allowedOrigins = [
+    'http://localhost:5173', 
+    'http://localhost:3000', 
+    'http://localhost:3001', 
+    'https://vercel-frontend-phi-one.vercel.app', 
+    'https://frontend-one-delta-75.vercel.app', 
+    'https://frontend-afhi.vercel.app', 
+    'https://frontend-xz1t.vercel.app', 
+    'https://frontend-vercel-ws88.vercel.app', 
+    'https://frontend-vercel-tm7g.vercel.app'
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  
+  next();
+});
+
 // MongoDB Connection
 if (process.env.MONGODB_URI) {
   mongoose.connect(process.env.MONGODB_URI)
