@@ -67,16 +67,27 @@ const io = new Server(httpServer, {
 });
 
 // Middleware
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'https://vercel-frontend-phi-one.vercel.app', 'https://frontend-one-delta-75.vercel.app', 'https://frontend-afhi.vercel.app', 'https://frontend-xz1t.vercel.app', 'https://frontend-vercel-ws88.vercel.app', 'https://frontend-vercel-tm7g.vercel.app'],
-  credentials: true
-}));
+// Configure CORS with more explicit settings
+const corsOptions = {
+  origin: [
+    'http://localhost:5173', 
+    'http://localhost:3000', 
+    'http://localhost:3001', 
+    'https://vercel-frontend-phi-one.vercel.app', 
+    'https://frontend-one-delta-75.vercel.app', 
+    'https://frontend-afhi.vercel.app', 
+    'https://frontend-xz1t.vercel.app', 
+    'https://frontend-vercel-ws88.vercel.app', 
+    'https://frontend-vercel-tm7g.vercel.app'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+};
 
-// Explicitly handle preflight requests for all routes
-app.options('*', cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001', 'https://vercel-frontend-phi-one.vercel.app', 'https://frontend-one-delta-75.vercel.app', 'https://frontend-afhi.vercel.app', 'https://frontend-xz1t.vercel.app', 'https://frontend-vercel-ws88.vercel.app', 'https://frontend-vercel-tm7g.vercel.app'],
-  credentials: true
-}));
+app.use(cors(corsOptions));
+
+// Handle preflight requests for all routes
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // Request logging middleware
